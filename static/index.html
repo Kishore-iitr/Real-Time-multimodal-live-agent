@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Vision-Agents All-In-One Assistant</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Gemini All-In-One Conversational Agent</h1>
+          <p class="subtitle">Real-time voice, video, screen share & chat powered by <span class="highlight">Vision-Agents</span>, <span class="highlight">GetStream</span> & <span class="highlight">Gemini Live</span></p>
+        </div>
+      </div>
+      <div class="header-status">
+        <button id="btn-open-studio-icon" class="studio-shortcut-btn" title="Open Stream Video Calling App in separate window" aria-label="Open Stream Video App">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+          </svg>
+          <span class="btn-text">Stream Video App</span>
+          <span class="external-icon">↗</span>
+        </button>
+        <span id="connection-pill" class="status-pill status-disconnected">
+          <span class="status-dot"></span>
+          <span id="connection-pill-text">Disconnected</span>
+        </span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- Left Column: Settings & Credentials -->
+      <section class="card config-card">
+        <div class="card-header">
+          <h2>1. Credentials & Setup</h2>
+          <span class="badge" id="env-badge">Browser / .env</span>
+        </div>
+
+        <form id="connect-form" onsubmit="return false;">
+          <!-- Gemini API Key -->
+          <div class="form-group">
+            <label for="gemini-key">
+              <span>Google Gemini API Key</span>
+              <span class="required">*Required</span>
+            </label>
+            <div class="input-with-action">
+              <input 
+                type="password" 
+                id="gemini-key" 
+                placeholder="AIzaSy... (or pre-configured in .env)" 
+                autocomplete="off"
+              />
+              <button type="button" class="btn-icon" id="toggle-gemini-key" title="Show/Hide Key">
+                👁
+              </button>
+            </div>
+            <div class="field-hint">
+              Get an API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Google AI Studio ↗</a>.
+            </div>
+          </div>
+
+          <!-- GetStream Credentials -->
+          <div class="form-group">
+            <label for="stream-key">
+              <span>GetStream API Key</span>
+              <span class="required">*Required</span>
+            </label>
+            <input 
+              type="text" 
+              id="stream-key" 
+              placeholder="e.g. nv4w... (or pre-configured in .env)" 
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="stream-secret">
+              <span>GetStream API Secret</span>
+              <span class="required">*Required</span>
+            </label>
+            <div class="input-with-action">
+              <input 
+                type="password" 
+                id="stream-secret" 
+                placeholder="e.g. secret_xxx (or pre-configured in .env)" 
+                autocomplete="off"
+              />
+              <button type="button" class="btn-icon" id="toggle-stream-secret" title="Show/Hide Secret">
+                👁
+              </button>
+            </div>
+            <div class="field-hint">
+              From your <a href="https://getstream.io" target="_blank" rel="noreferrer">GetStream Dashboard ↗</a>.
+            </div>
+          </div>
+
+          <!-- Model Selection -->
+          <div class="form-group">
+            <label for="gemini-model">Gemini Realtime Model</label>
+            <select id="gemini-model">
+              <option value="gemini-3.1-flash-live-preview" selected>gemini-3.1-flash-live-preview (Gemini 3.1 Flash Live)</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp</option>
+            </select>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="btn-group">
+            <button type="button" id="btn-test-gemini" class="btn btn-secondary">
+              <span class="btn-icon-symbol">⚡</span> Verify Key
+            </button>
+            <button type="button" id="btn-connect" class="btn btn-primary">
+              <span class="btn-icon-symbol">📞</span> Connect Agent
+            </button>
+          </div>
+
+          <div id="status-alert" class="alert hidden"></div>
+        </form>
+      </section>
+
+      <!-- Right Column: All-In-One Unified Stage (Voice, Video, Screen, Chat) -->
+      <section class="card session-card">
+        <div class="card-header">
+          <h2>2. Unified In-Page Studio</h2>
+          <span id="call-id-badge" class="badge badge-muted">No Active Session</span>
+        </div>
+
+        <!-- In-Page Media Display (Screen Share, Video Feeds, Voice Visualizer) -->
+        <div class="call-stage" id="call-stage">
+          <!-- Screen Share Display -->
+          <div class="media-container screen-container hidden" id="screen-container">
+            <video id="screen-video" autoplay playsinline></video>
+            <div class="media-tag">🖥️ Screen Share Active</div>
+          </div>
+
+          <!-- Video / Camera Display -->
+          <div class="media-container camera-container hidden" id="camera-container">
+            <video id="local-video" autoplay playsinline muted></video>
+            <div class="media-tag">📹 Camera Active</div>
+          </div>
+
+          <!-- Voice / Conversational Avatar Stage -->
+          <div class="visualizer-container" id="visualizer-container">
+            <div class="agent-avatar" id="avatar">
+              <div class="avatar-ring ring-1"></div>
+              <div class="avatar-ring ring-2"></div>
+              <div class="avatar-core">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="audio-waves" id="audio-waves">
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+            </div>
+
+            <div class="call-status-label" id="call-status-label">
+              Ready to connect. Click "Connect Agent" to start live in-page voice, video & screen interaction.
+            </div>
+          </div>
+
+          <!-- In-Page Media & Call Controls -->
+          <div class="call-controls">
+            <button id="btn-mic" class="control-btn" disabled title="Mute/Unmute Mic">
+              <span class="icon">🎙️</span>
+              <span class="label">Mute Mic</span>
+            </button>
+
+            <button id="btn-camera" class="control-btn" disabled title="Toggle Camera Video">
+              <span class="icon">📹</span>
+              <span class="label">Camera On</span>
+            </button>
+
+            <button id="btn-screen" class="control-btn" disabled title="Share Screen">
+              <span class="icon">🖥️</span>
+              <span class="label">Share Screen</span>
+            </button>
+
+            <button id="btn-disconnect" class="control-btn control-btn-danger" disabled title="End Call">
+              <span class="icon">🛑</span>
+              <span class="label">End Call</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden Audio Element for Agent Voice Output -->
+        <audio id="remote-agent-audio" autoplay playsinline></audio>
+
+        <!-- Transcript & Chat Section -->
+        <div class="conversation-panel">
+          <div class="conversation-header">
+            <h3>Live Conversation & Transcript</h3>
+            <span class="transcript-hint">Speak naturally or type questions below</span>
+          </div>
+
+          <div class="transcript-feed" id="transcript-feed">
+            <div class="chat-message system">
+              <div class="message-meta">System</div>
+              <div class="message-bubble">Agent is offline. Click "Connect Agent" to start in-page conversation.</div>
+            </div>
+          </div>
+
+          <!-- Companion Question Input -->
+          <form id="chat-form" class="chat-input-bar" onsubmit="return false;">
+            <input 
+              type="text" 
+              id="user-text-input" 
+              placeholder="Type a question or message to the agent..." 
+              autocomplete="off"
+            />
+            <button type="submit" id="btn-send-text" class="btn btn-send">
+              Send ↵
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>All-in-one in-page interaction • <a href="https://github.com/GetStream/Vision-Agents" target="_blank" rel="noreferrer">Vision-Agents</a> • <a href="https://getstream.io" target="_blank" rel="noreferrer">GetStream</a> • <a href="https://ai.google.dev" target="_blank" rel="noreferrer">Google Gemini Live</a></p>
+    </footer>
+  </div>
+
+  <!-- Standalone Bundled Stream Video Client -->
+  <script src="/static/stream-video.bundle.js"></script>
+  <!-- Application Script -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

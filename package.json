@@ -1,0 +1,17 @@
+{
+  "name": "live-agent-v2",
+  "version": "1.0.0",
+  "description": "A real-time voice conversational application built using [Stream Vision-Agents](https://github.com/GetStream/Vision-Agents), [GetStream WebRTC](https://getstream.io/), and [Google Gemini Live](https://ai.google.dev/).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@stream-io/video-client": "^1.64.1",
+    "esbuild": "^0.28.2"
+  }
+}
