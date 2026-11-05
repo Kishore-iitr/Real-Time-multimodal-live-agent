@@ -231,7 +231,12 @@ async function connectSession(requestedMode) {
       console.log('[App] Switching from Audio Alone to Video Call App...');
       // 1. Mute and detach in-page audio to prevent duplicate agents & echo
       if (currentCall) {
-        try { await currentCall.microphone.disable(); } catch (e) {}
+        try { await currentCall.leave(); } catch (e) {}
+        currentCall = null;
+      }
+      if (streamClient) {
+        try { await streamClient.disconnectUser(); } catch (e) {}
+        streamClient = null;
       }
       if (remoteAudioEl) {
         remoteAudioEl.pause();

@@ -57,6 +57,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 # Store active agent sessions: call_id -> dict
 active_sessions: Dict[str, Dict[str, Any]] = {}
 
@@ -300,7 +308,8 @@ async def connect_agent(req: ConnectRequest):
             "api_key": stream_key,
             "token": user_token,
             "skip_lobby": "true",
-            "user_name": user_name,
+            "user_name": "You",
+            "name": "You",
             "video_encoder": "h264",
             "bitrate": 12000000,
             "w": 1920,
