@@ -118,11 +118,22 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="btn-group">
-            <button type="button" id="btn-test-gemini" class="btn btn-secondary">
-              <span class="btn-icon-symbol">⚡</span> Verify Key
+          <div class="actions-container">
+            <button type="button" id="btn-test-gemini" class="btn btn-secondary btn-full">
+              <span class="btn-icon-symbol">⚡</span> Verify API Key
             </button>
-            <button type="button" id="btn-connect" class="btn btn-primary">
+            <div class="mode-select-label">Choose Conversation Mode:</div>
+            <div class="btn-group mode-btn-group">
+              <button type="button" id="btn-connect-audio" class="btn btn-primary" title="Start pure voice conversation in-page (Audio alone)">
+                <span class="btn-icon-symbol">🎙️</span> Audio Agent (In-Page)
+              </button>
+              <button type="button" id="btn-connect-video" class="btn btn-video" title="Launch Video Calling Room in separate window (Video call separate)">
+                <span class="btn-icon-symbol">📹</span> Video Call App ↗
+              </button>
+            </div>
+          </div>
+          <div style="display:none">
+            <button type="button" id="btn-connect">
               <span class="btn-icon-symbol">📞</span> Connect Agent
             </button>
           </div>
@@ -134,12 +145,28 @@
       <!-- Right Column: All-In-One Unified Stage (Voice, Video, Screen, Chat) -->
       <section class="card session-card">
         <div class="card-header">
-          <h2>2. Unified In-Page Studio</h2>
-          <span id="call-id-badge" class="badge badge-muted">No Active Session</span>
+          <h2>2. Unified Studio & Conversation</h2>
+          <div class="header-badges">
+            <span id="mode-badge" class="badge badge-muted">Mode: Idle</span>
+            <span id="call-id-badge" class="badge badge-muted">No Active Session</span>
+          </div>
         </div>
 
         <!-- In-Page Media Display (Screen Share, Video Feeds, Voice Visualizer) -->
         <div class="call-stage" id="call-stage">
+          <!-- Separate Video Call Active Banner -->
+          <div class="video-mode-banner hidden" id="video-mode-banner">
+            <div class="banner-icon">📹</div>
+            <div class="banner-content">
+              <h4>Video Call Room Active in Separate Window</h4>
+              <p>In-page audio is silenced to prevent duplicate agents & echo. Your video, mic, and agent conversation are active in the Stream Video App window.</p>
+              <div class="banner-actions">
+                <button type="button" id="btn-reopen-video" class="btn btn-small btn-secondary">Re-open Video Window ↗</button>
+                <button type="button" id="btn-switch-to-audio" class="btn btn-small btn-primary">Switch to Audio Alone (In-Page)</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Screen Share Display -->
           <div class="media-container screen-container hidden" id="screen-container">
             <video id="screen-video" autoplay playsinline></video>
@@ -176,7 +203,7 @@
             </div>
 
             <div class="call-status-label" id="call-status-label">
-              Ready to connect. Click "Connect Agent" to start live in-page voice, video & screen interaction.
+              Ready to connect. Choose "Audio Agent (In-Page)" for voice alone, or "Video Call App" for the video room.
             </div>
           </div>
 
@@ -217,7 +244,7 @@
           <div class="transcript-feed" id="transcript-feed">
             <div class="chat-message system">
               <div class="message-meta">System</div>
-              <div class="message-bubble">Agent is offline. Click "Connect Agent" to start in-page conversation.</div>
+              <div class="message-bubble">Agent is offline. Choose a mode on the left to start.</div>
             </div>
           </div>
 

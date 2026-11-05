@@ -179,6 +179,20 @@ async def connect_agent(req: ConnectRequest):
     os.environ["GEMINI_API_KEY"] = gemini_key
     os.environ["GOOGLE_API_KEY"] = gemini_key
 
+    # Clean up any lingering active sessions to ensure only ONE agent runs at a time
+    for old_id, old_sess in list(active_sessions.items()):
+        logger.info(f"Closing previous session {old_id} before starting new one.")
+        try:
+            old_task = old_sess.get("task")
+            if old_task and not old_task.done():
+                old_task.cancel()
+            old_agent = old_sess.get("agent")
+            if old_agent:
+                asyncio.create_task(old_agent.close())
+        except Exception as e:
+            logger.warning(f"Error cleaning up old session {old_id}: {e}")
+        active_sessions.pop(old_id, None)
+
     call_id = f"voice-{uuid.uuid4().hex[:8]}"
     user_id = f"user-{uuid.uuid4().hex[:6]}"
     user_name = "User"
