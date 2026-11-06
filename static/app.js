@@ -394,7 +394,7 @@ if (btnTestGemini) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           api_key: key || 'USE_ENV',
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3-flash-preview',
         }),
       });
 
@@ -507,7 +507,7 @@ async function connectSession(requestedMode) {
   const geminiKey = geminiKeyInput ? geminiKeyInput.value.trim() : '';
   const streamKey = streamKeyInput ? streamKeyInput.value.trim() : '';
   const streamSecret = streamSecretInput ? streamSecretInput.value.trim() : '';
-  const model = geminiModelSelect ? geminiModelSelect.value : 'gemini-3.1-flash-live-preview';
+  const model = geminiModelSelect ? geminiModelSelect.value : 'gemini-3.8-live';
 
   try {
     if (callStatusLabel) {
@@ -931,7 +931,7 @@ if (chatForm) {
           call_id: activeCallId,
           gemini_api_key: geminiKeyInput ? geminiKeyInput.value.trim() : 'USE_ENV',
           message: text,
-          model: geminiModelSelect ? geminiModelSelect.value : 'gemini-3.1-flash-live-preview',
+          model: geminiModelSelect ? geminiModelSelect.value : 'gemini-3.8-live',
         }),
       });
 

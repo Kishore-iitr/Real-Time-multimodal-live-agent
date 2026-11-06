@@ -76,19 +76,19 @@ class ConfigResponse(BaseModel):
     has_stream_key: bool
     has_stream_secret: bool
     stream_api_key_masked: Optional[str] = None
-    default_model: str = "gemini-3.1-flash-live-preview"
+    default_model: str = "gemini-3.8-live"
 
 
 class TestGeminiRequest(BaseModel):
     api_key: Optional[str] = None
-    model: Optional[str] = "gemini-2.5-flash"
+    model: Optional[str] = "gemini-3-flash-preview"
 
 
 class ConnectRequest(BaseModel):
     gemini_api_key: Optional[str] = None
     stream_api_key: Optional[str] = None
     stream_api_secret: Optional[str] = None
-    model: Optional[str] = "gemini-3.1-flash-live-preview"
+    model: Optional[str] = "gemini-3.8-live"
     liveavatar_api_key: Optional[str] = None
     liveavatar_avatar_id: Optional[str] = None
     enable_custom_avatar: Optional[bool] = False
@@ -102,7 +102,7 @@ class ChatMessageRequest(BaseModel):
     call_id: Optional[str] = None
     gemini_api_key: Optional[str] = None
     message: str
-    model: Optional[str] = "gemini-2.5-flash"
+    model: Optional[str] = "gemini-3-flash-preview"
 
 
 @app.get("/api/config", response_model=ConfigResponse)
@@ -126,7 +126,7 @@ async def get_config():
         has_stream_key=bool(stream_key),
         has_stream_secret=bool(stream_sec),
         stream_api_key_masked=masked_stream_key,
-        default_model="gemini-3.1-flash-live-preview",
+        default_model="gemini-3.8-live",
     )
 
 
@@ -142,7 +142,7 @@ async def test_gemini(req: TestGeminiRequest):
 
     try:
         client = genai.Client(api_key=key)
-        model = req.model or "gemini-2.5-flash"
+        model = req.model or "gemini-3-flash-preview"
         resp = await client.aio.models.generate_content(
             model=model,
             contents="Say 'Gemini API key is verified and operational!' in under 10 words.",
@@ -234,7 +234,7 @@ async def connect_agent(req: ConnectRequest):
         )
 
         # 4. Initialize Gemini Realtime LLM
-        model_name = req.model or "gemini-3.1-flash-live-preview"
+        model_name = req.model or "gemini-3.8-live"
         llm = gemini.Realtime(
             api_key=gemini_key,
             model=model_name
@@ -446,7 +446,7 @@ async def chat_message(req: ChatMessageRequest):
     try:
         client = genai.Client(api_key=api_key)
         resp = await client.aio.models.generate_content(
-            model=req.model or "gemini-2.5-flash",
+            model=req.model or "gemini-3-flash-preview",
             contents=msg,
         )
         return {
