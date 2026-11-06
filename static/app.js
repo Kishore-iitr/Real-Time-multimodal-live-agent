@@ -29,6 +29,25 @@ const btnSwitchToAudio = document.getElementById('btn-switch-to-audio');
 const avatarVideoContainer = document.getElementById('avatar-video-container');
 const agentAvatarVideoEl = document.getElementById('agent-avatar-video');
 
+const liveavatarKeyInput = document.getElementById('liveavatar-key');
+const liveavatarIdInput = document.getElementById('liveavatar-id');
+
+const avatarStatusPill = document.getElementById('avatar-status-pill');
+const avatarStatusText = document.getElementById('avatar-status-text');
+const avatarHead = document.getElementById('avatar-head');
+const avatarAura = document.getElementById('avatar-aura');
+const mouthCavity = document.getElementById('mouth-cavity');
+const eyebrowLeft = document.getElementById('eyebrow-left');
+const eyebrowRight = document.getElementById('eyebrow-right');
+
+// Web Audio API Lip-Sync State (Zero-Lag 60 FPS Client Engine)
+let audioCtx = null;
+let analyser = null;
+let audioSourceNode = null;
+let audioFreqData = null;
+let isLipSyncActive = false;
+let lipSyncAnimFrame = null;
+
 const screenContainer = document.getElementById('screen-container');
 const screenVideoEl = document.getElementById('screen-video');
 const cameraContainer = document.getElementById('camera-container');
@@ -91,6 +110,146 @@ function addTranscript(speaker, text) {
   transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
 }
 
+// ==============================================================
+// Helper: Web Audio API Real-Time Lip-Sync Engine (Zero Lag)
+// ==============================================================
+function initAudioLipSync(audioEl) {
+  if (!audioEl) return;
+  try {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextClass();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.45;
+      audioFreqData = new Uint8Array(analyser.frequencyBinCount);
+    }
+
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+
+    if (!audioSourceNode) {
+      audioSourceNode = audioCtx.createMediaElementSource(audioEl);
+      audioSourceNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    startLipSyncLoop();
+  } catch (err) {
+    console.warn('[LipSync] Web Audio init warning:', err);
+  }
+}
+
+function startLipSyncLoop() {
+  if (isLipSyncActive) return;
+  isLipSyncActive = true;
+
+  function onFrame() {
+    if (!isLipSyncActive) return;
+
+    if (analyser && audioFreqData) {
+      analyser.getByteFrequencyData(audioFreqData);
+
+      // Measure volume energy across human voice spectrum (~100Hz - 3500Hz)
+      let sum = 0;
+      let count = 0;
+      for (let i = 1; i < 24; i++) {
+        sum += audioFreqData[i];
+        count++;
+      }
+      const rawEnergy = count > 0 ? (sum / count) / 255.0 : 0;
+
+      if (rawEnergy > 0.035) {
+        // AGENT SPEAKING: Dynamic mouth aperture and live animation
+        const norm = Math.min(1.0, (rawEnergy - 0.035) * 4.2);
+        
+        if (mouthCavity) {
+          const mouthH = Math.round(4 + norm * 26);
+          const mouthW = Math.round(28 + norm * 14);
+          mouthCavity.style.height = `${mouthH}px`;
+          mouthCavity.style.width = `${mouthW}px`;
+          mouthCavity.style.borderRadius = `${Math.round(6 + norm * 8)}px`;
+        }
+        if (eyebrowLeft && eyebrowRight) {
+          const lift = Math.round(norm * 4);
+          eyebrowLeft.style.transform = `translateY(-${lift}px) rotate(-3deg)`;
+          eyebrowRight.style.transform = `translateY(-${lift}px) rotate(3deg)`;
+        }
+        if (avatarHead) {
+          const headSway = Math.sin(Date.now() * 0.007) * 2.5;
+          avatarHead.style.transform = `scale(${1 + norm * 0.03}) translateY(${headSway}px)`;
+        }
+        if (avatarAura) {
+          avatarAura.style.opacity = `${0.35 + norm * 0.65}`;
+          avatarAura.style.transform = `scale(${1 + norm * 0.25})`;
+        }
+        if (avatarStatusPill && avatarStatusText) {
+          avatarStatusPill.className = 'live-status-pill speaking';
+          avatarStatusText.textContent = 'GEMINI LIVE: SPEAKING';
+        }
+        if (audioWaves) {
+          audioWaves.classList.add('speaking');
+        }
+      } else {
+        // AGENT LISTENING / IDLE
+        if (mouthCavity) {
+          mouthCavity.style.height = '3px';
+          mouthCavity.style.width = '26px';
+          mouthCavity.style.borderRadius = '6px';
+        }
+        if (eyebrowLeft && eyebrowRight) {
+          eyebrowLeft.style.transform = 'translateY(0) rotate(-3deg)';
+          eyebrowRight.style.transform = 'translateY(0) rotate(3deg)';
+        }
+        if (avatarHead) {
+          const breath = Math.sin(Date.now() * 0.002) * 1.5;
+          avatarHead.style.transform = `translateY(${breath}px)`;
+        }
+        if (avatarAura) {
+          avatarAura.style.opacity = '0.2';
+          avatarAura.style.transform = 'scale(1)';
+        }
+        if (avatarStatusPill && avatarStatusText && currentMode) {
+          avatarStatusPill.className = 'live-status-pill listening';
+          avatarStatusText.textContent = 'GEMINI LIVE: LISTENING';
+        }
+        if (audioWaves) {
+          audioWaves.classList.remove('speaking');
+        }
+      }
+    }
+
+    lipSyncAnimFrame = requestAnimationFrame(onFrame);
+  }
+
+  lipSyncAnimFrame = requestAnimationFrame(onFrame);
+}
+
+function stopLipSyncLoop() {
+  isLipSyncActive = false;
+  if (lipSyncAnimFrame) {
+    cancelAnimationFrame(lipSyncAnimFrame);
+    lipSyncAnimFrame = null;
+  }
+  if (mouthCavity) {
+    mouthCavity.style.height = '3px';
+    mouthCavity.style.width = '26px';
+    mouthCavity.style.borderRadius = '6px';
+  }
+  if (avatarStatusPill && avatarStatusText) {
+    avatarStatusPill.className = 'live-status-pill standby';
+    avatarStatusText.textContent = 'GEMINI LIVE: STANDBY';
+  }
+  if (avatarAura) {
+    avatarAura.style.opacity = '0.15';
+    avatarAura.style.transform = 'scale(1)';
+  }
+  if (audioWaves) {
+    audioWaves.classList.remove('speaking');
+  }
+}
+
 // Helper: Bind Agent Audio & Avatar Video Element
 function bindAgentMedia(call) {
   if (!call) return;
@@ -103,6 +262,7 @@ function bindAgentMedia(call) {
             try {
               call.bindAudioElement(remoteAudioEl, p.sessionId, 'audioTrack');
               console.log('[InPage] Bound agent audio track for session:', p.sessionId);
+              initAudioLipSync(remoteAudioEl);
             } catch (e) {
               console.warn('[InPage] Audio bind warning:', e);
             }
@@ -154,6 +314,23 @@ async function initializeApp() {
 
   const savedModel = localStorage.getItem('gemini_model');
   if (savedModel && geminiModelSelect) geminiModelSelect.value = savedModel;
+
+  const savedLiveAvatarKey = localStorage.getItem('liveavatar_api_key');
+  if (savedLiveAvatarKey && liveavatarKeyInput) liveavatarKeyInput.value = savedLiveAvatarKey;
+
+  const savedLiveAvatarId = localStorage.getItem('liveavatar_avatar_id');
+  if (savedLiveAvatarId && liveavatarIdInput) liveavatarIdInput.value = savedLiveAvatarId;
+
+  if (liveavatarKeyInput) {
+    liveavatarKeyInput.addEventListener('change', () => {
+      if (liveavatarKeyInput.value) localStorage.setItem('liveavatar_api_key', liveavatarKeyInput.value.trim());
+    });
+  }
+  if (liveavatarIdInput) {
+    liveavatarIdInput.addEventListener('change', () => {
+      if (liveavatarIdInput.value) localStorage.setItem('liveavatar_avatar_id', liveavatarIdInput.value.trim());
+    });
+  }
 
   // Save inputs on change
   if (geminiKeyInput) {
@@ -347,6 +524,8 @@ async function connectSession(requestedMode) {
         stream_api_key: streamKey || null,
         stream_api_secret: streamSecret || null,
         model: model,
+        liveavatar_api_key: liveavatarKeyInput ? liveavatarKeyInput.value.trim() : null,
+        liveavatar_avatar_id: liveavatarIdInput ? liveavatarIdInput.value.trim() : null,
       }),
     });
 
@@ -400,7 +579,9 @@ async function connectSession(requestedMode) {
         await currentCall.camera.disable();
 
         if (remoteAudioEl) {
-          remoteAudioEl.play().catch(() => {});
+          remoteAudioEl.play().then(() => {
+            initAudioLipSync(remoteAudioEl);
+          }).catch(() => {});
         }
       } else {
         console.warn('[InPage] StreamVideoClient not loaded on window.');
@@ -650,6 +831,7 @@ async function disconnectCall() {
     remoteAudioEl.pause();
     remoteAudioEl.srcObject = null;
   }
+  stopLipSyncLoop();
 
   if (agentAvatarVideoEl) {
     agentAvatarVideoEl.srcObject = null;

@@ -89,6 +89,9 @@ class ConnectRequest(BaseModel):
     stream_api_key: Optional[str] = None
     stream_api_secret: Optional[str] = None
     model: Optional[str] = "gemini-3.1-flash-live-preview"
+    liveavatar_api_key: Optional[str] = None
+    liveavatar_avatar_id: Optional[str] = None
+    enable_custom_avatar: Optional[bool] = False
 
 
 class DisconnectRequest(BaseModel):
@@ -245,7 +248,25 @@ async def connect_agent(req: ConnectRequest):
             "Do not use markdown formatting, bullet points, or code blocks unless explicitly requested."
         )
 
-        avatar = GeminiLiveAvatar(width=640, height=480, fps=25)
+        avatar = None
+        liveavatar_key = req.liveavatar_api_key or os.getenv("LIVEAVATAR_API_KEY")
+        liveavatar_id = req.liveavatar_avatar_id or os.getenv("LIVEAVATAR_AVATAR_ID")
+
+        if liveavatar_key and liveavatar_id:
+            try:
+                from vision_agents.plugins import liveavatar
+                avatar = liveavatar.Avatar(
+                    api_key=liveavatar_key,
+                    avatar_id=liveavatar_id,
+                    is_sandbox=True,
+                )
+                logger.info(f"Initialized real photorealistic LiveAvatar for agent: {liveavatar_id}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize LiveAvatar: {e}. Running in zero-lag native mode.")
+                avatar = None
+        elif req.enable_custom_avatar:
+            avatar = GeminiLiveAvatar(width=640, height=480, fps=20)
+            logger.info("Initialized custom procedural avatar track.")
 
         agent = Agent(
             edge=edge,
@@ -267,7 +288,8 @@ async def connect_agent(req: ConnectRequest):
         async def on_llm_response(event):
             text = getattr(event, "text", None) or getattr(event, "content", None)
             if text:
-                avatar.on_agent_speaking(str(text))
+                if avatar and hasattr(avatar, "on_agent_speaking"):
+                    avatar.on_agent_speaking(str(text))
                 await event_queue.put({
                     "type": "transcript",
                     "speaker": "agent",
@@ -299,10 +321,11 @@ async def connect_agent(req: ConnectRequest):
                     await agent.close()
                 except Exception:
                     pass
-                try:
-                    await avatar.close()
-                except Exception:
-                    pass
+                if avatar:
+                    try:
+                        await avatar.close()
+                    except Exception:
+                        pass
                 active_sessions.pop(call_id, None)
 
         task = asyncio.create_task(run_agent())

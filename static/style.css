@@ -571,57 +571,359 @@ select:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   margin-bottom: 20px;
 }
 
-/* Avatar Pulse Animation */
-.agent-avatar {
+/* Status Pill */
+.live-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-dim);
+  transition: all 0.3s ease;
+}
+
+.live-status-pill .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: background 0.3s ease;
+}
+
+.live-status-pill.listening {
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.2);
+}
+
+.live-status-pill.listening .status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse-dot 1.5s infinite;
+}
+
+.live-status-pill.speaking {
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #93c5fd;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.live-status-pill.speaking .status-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 10px #3b82f6;
+  animation: pulse-dot 0.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Talking Avatar Persona Stage */
+.talking-avatar-wrapper {
   position: relative;
-  width: 86px;
-  height: 86px;
+  width: 170px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.avatar-core {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #06b6d4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  z-index: 2;
-  box-shadow: 0 0 24px rgba(79, 70, 229, 0.4);
-  transition: transform 0.3s ease;
-}
-
-.avatar-ring {
+.avatar-aura {
   position: absolute;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
-  border: 2px solid rgba(99, 102, 241, 0.3);
-  opacity: 0;
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.35) 0%, rgba(147, 51, 234, 0.15) 50%, transparent 75%);
+  filter: blur(12px);
+  opacity: 0.3;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 0;
+}
+
+.talking-avatar {
+  position: relative;
+  z-index: 1;
+}
+
+.avatar-head-wrapper {
+  position: relative;
+  width: 120px;
+  height: 145px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.08s ease-out;
+}
+
+/* Hair Back */
+.avatar-hair-back {
+  position: absolute;
+  top: -4px;
+  width: 116px;
+  height: 110px;
+  border-radius: 58px 58px 40px 40px;
+  background: #1e1b4b;
+  z-index: 1;
+}
+
+/* Neck & Collar */
+.avatar-neck {
+  position: absolute;
+  bottom: 12px;
+  width: 32px;
+  height: 30px;
+  background: #e2b39f;
+  border-radius: 0 0 8px 8px;
+  z-index: 2;
+}
+
+.avatar-collar {
+  position: absolute;
+  bottom: 0px;
+  width: 90px;
+  height: 24px;
+  background: linear-gradient(135deg, #312e81, #1e1b4b);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 12px 12px 0 0;
+  z-index: 3;
+}
+
+/* Face Contour */
+.avatar-face {
+  position: relative;
+  width: 96px;
+  height: 104px;
+  border-radius: 48px 48px 42px 42px;
+  background: linear-gradient(180deg, #fde8e0 0%, #f6c8b9 100%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  z-index: 4;
+  overflow: hidden;
+}
+
+/* Hair Front / Bangs */
+.avatar-hair-front {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: #1e1b4b;
+  border-radius: 48px 48px 24px 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 6;
+}
+
+/* Eyebrows */
+.avatar-eyebrows {
+  position: absolute;
+  top: 36px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 7;
+}
+
+.eyebrow {
+  width: 22px;
+  height: 3px;
+  background: #312e81;
+  border-radius: 2px;
+  transition: transform 0.1s ease;
+}
+
+.left-eyebrow { transform: rotate(-3deg); }
+.right-eyebrow { transform: rotate(3deg); }
+
+/* Eyes & Eyelids */
+.avatar-eyes {
+  position: absolute;
+  top: 44px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 7;
+}
+
+.eye {
+  position: relative;
+  width: 20px;
+  height: 15px;
+  background: #ffffff;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pupil {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2563eb 20%, #0f172a 80%);
+  top: 2.5px;
+  left: 5px;
+}
+
+.pupil::after {
+  content: '';
+  position: absolute;
+  top: 1.5px;
+  left: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.eyelid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: #f6c8b9;
+  border-bottom: 1.5px solid #d99f8d;
+  transition: height 0.08s ease;
+}
+
+/* Natural Blink Keyframes */
+@keyframes natural-blink {
+  0%, 96%, 100% { height: 0%; }
+  98% { height: 100%; }
+}
+
+.eye .eyelid {
+  animation: natural-blink 4.2s infinite ease-in-out;
+}
+
+/* Subtle Cheeks Blush */
+.blush {
+  position: absolute;
+  top: 60px;
+  width: 14px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(244, 114, 182, 0.35);
+  filter: blur(1.5px);
+  z-index: 5;
+}
+.left-blush { left: 10px; }
+.right-blush { right: 10px; }
+
+/* Nose */
+.avatar-nose {
+  position: absolute;
+  top: 57px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 6px;
+  border-radius: 2px;
+  background: #e2b39f;
+  z-index: 7;
+}
+
+/* Dynamic Lip-Sync Mouth */
+.avatar-mouth {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 7;
+}
+
+.lip {
+  width: 24px;
+  height: 2px;
+  background: #e07a68;
+  border-radius: 2px;
+}
+
+.upper-lip { margin-bottom: -1px; }
+.lower-lip { margin-top: -1px; }
+
+.mouth-cavity {
+  position: relative;
+  width: 26px;
+  height: 3px;
+  background: linear-gradient(180deg, #581c27 0%, #300c13 100%);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: height 0.06s ease, width 0.06s ease, border-radius 0.06s ease;
+}
+
+.teeth.upper-teeth {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: #ffffff;
+  border-radius: 0 0 2px 2px;
+}
+
+.tongue {
+  position: absolute;
+  bottom: 0;
+  left: 4px;
+  right: 4px;
+  height: 4px;
+  background: #e16b7e;
+  border-radius: 4px 4px 0 0;
+}
+
+/* Collapsible Settings for HeyGen LiveAvatar */
+.avatar-collapsible-group {
+  margin-top: 14px;
+}
+
+.avatar-details {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.5);
+  overflow: hidden;
   transition: var(--transition);
 }
 
-.agent-avatar.active .avatar-ring.ring-1 {
-  width: 96px;
-  height: 96px;
-  animation: ring-pulse 2s infinite ease-out;
+.avatar-details[open] {
+  border-color: rgba(99, 102, 241, 0.35);
 }
 
-.agent-avatar.active .avatar-ring.ring-2 {
-  width: 120px;
-  height: 120px;
-  animation: ring-pulse 2s 0.7s infinite ease-out;
+.avatar-summary {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
 }
 
-@keyframes ring-pulse {
-  0% { transform: scale(0.8); opacity: 0.7; }
-  100% { transform: scale(1.3); opacity: 0; }
+.avatar-summary:hover {
+  color: #fff;
+}
+
+.avatar-details-content {
+  padding: 12px 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Audio Wave Bars */
