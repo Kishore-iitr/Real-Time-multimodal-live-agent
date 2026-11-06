@@ -78,6 +78,7 @@ class ConfigResponse(BaseModel):
     has_stream_secret: bool
     stream_api_key_masked: Optional[str] = None
     default_model: str = "gemini-3.8-live"
+    default_voice: str = "Puck"
 
 
 class TestGeminiRequest(BaseModel):
@@ -90,6 +91,7 @@ class ConnectRequest(BaseModel):
     stream_api_key: Optional[str] = None
     stream_api_secret: Optional[str] = None
     model: Optional[str] = "gemini-3.8-live"
+    voice: Optional[str] = "Puck"
     liveavatar_api_key: Optional[str] = None
     liveavatar_avatar_id: Optional[str] = None
     liveavatar_is_sandbox: Optional[bool] = False
@@ -156,6 +158,7 @@ async def get_config():
         has_stream_secret=bool(stream_sec),
         stream_api_key_masked=masked_stream_key,
         default_model="gemini-3.8-live",
+        default_voice="Puck",
     )
 
 
@@ -262,16 +265,31 @@ async def connect_agent(req: ConnectRequest):
             }
         )
 
-        # 4. Initialize Gemini Realtime LLM
+        # 4. Initialize Gemini Realtime LLM with Voice Configuration (Male voice e.g. Puck by default)
         model_name = req.model or "gemini-3.8-live"
+        voice_name = (req.voice or "Puck").strip()
+        logger.info(f"Initializing Gemini Realtime: model={model_name}, voice={voice_name}")
+
+        realtime_config = {
+            "speech_config": {
+                "language_code": "en-US",
+                "voice_config": {
+                    "prebuilt_voice_config": {
+                        "voice_name": voice_name
+                    }
+                }
+            }
+        }
+
         llm = gemini.Realtime(
             api_key=gemini_key,
-            model=model_name
+            model=model_name,
+            config=realtime_config
         )
 
         # 5. Initialize the Conversational Voice Agent (audio-only, NO vision)
         instructions = (
-            "You are a friendly, intelligent voice conversational agent. "
+            "You are a friendly, intelligent male voice conversational agent. "
             "You listen carefully and reply conversationally, warmly, and accurately to the user. "
             "Keep your responses natural, spoken, and concise (1-3 sentences) so the conversation flows smoothly like a real telephone call. "
             "Do not use markdown formatting, bullet points, or code blocks unless explicitly requested."

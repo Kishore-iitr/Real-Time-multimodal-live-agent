@@ -5,6 +5,7 @@ const streamKeyInput = document.getElementById('stream-key');
 const streamSecretInput = document.getElementById('stream-secret');
 const toggleStreamSecretBtn = document.getElementById('toggle-stream-secret');
 const geminiModelSelect = document.getElementById('gemini-model');
+const geminiVoiceSelect = document.getElementById('gemini-voice');
 
 const btnTestGemini = document.getElementById('btn-test-gemini');
 const btnConnect = document.getElementById('btn-connect');
@@ -319,6 +320,9 @@ async function initializeApp() {
   const savedModel = localStorage.getItem('gemini_model');
   if (savedModel && geminiModelSelect) geminiModelSelect.value = savedModel;
 
+  const savedVoice = localStorage.getItem('gemini_voice');
+  if (savedVoice && geminiVoiceSelect) geminiVoiceSelect.value = savedVoice;
+
   const savedLiveAvatarKey = localStorage.getItem('liveavatar_api_key');
   if (savedLiveAvatarKey && liveavatarKeyInput) liveavatarKeyInput.value = savedLiveAvatarKey;
 
@@ -426,6 +430,11 @@ async function initializeApp() {
   if (geminiModelSelect) {
     geminiModelSelect.addEventListener('change', () => {
       localStorage.setItem('gemini_model', geminiModelSelect.value);
+    });
+  }
+  if (geminiVoiceSelect) {
+    geminiVoiceSelect.addEventListener('change', () => {
+      localStorage.setItem('gemini_voice', geminiVoiceSelect.value);
     });
   }
 
@@ -583,6 +592,7 @@ async function connectSession(requestedMode) {
   const streamKey = streamKeyInput ? streamKeyInput.value.trim() : '';
   const streamSecret = streamSecretInput ? streamSecretInput.value.trim() : '';
   const model = geminiModelSelect ? geminiModelSelect.value : 'gemini-3.8-live';
+  const voice = geminiVoiceSelect ? geminiVoiceSelect.value : 'Puck';
 
   try {
     if (callStatusLabel) {
@@ -599,6 +609,7 @@ async function connectSession(requestedMode) {
         stream_api_key: streamKey || null,
         stream_api_secret: streamSecret || null,
         model: model,
+        voice: voice,
         liveavatar_api_key: liveavatarKeyInput ? liveavatarKeyInput.value.trim() : null,
         liveavatar_avatar_id: liveavatarIdInput ? liveavatarIdInput.value.trim() : null,
         liveavatar_is_sandbox: liveavatarSandboxCheckbox ? liveavatarSandboxCheckbox.checked : false,
