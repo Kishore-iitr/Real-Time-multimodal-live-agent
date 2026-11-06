@@ -46,6 +46,7 @@ logger = logging.getLogger("vision_agents_app")
 import google.genai as genai
 from vision_agents.core import Agent, User
 from vision_agents.plugins import gemini, getstream
+from avatar import GeminiLiveAvatar
 
 app = FastAPI(title="Vision-Agents Gemini Conversational App")
 
@@ -197,6 +198,9 @@ async def connect_agent(req: ConnectRequest):
             old_agent = old_sess.get("agent")
             if old_agent:
                 asyncio.create_task(old_agent.close())
+            old_avatar = old_sess.get("avatar")
+            if old_avatar:
+                asyncio.create_task(old_avatar.close())
         except Exception as e:
             logger.warning(f"Error cleaning up old session {old_id}: {e}")
         active_sessions.pop(old_id, None)
@@ -241,11 +245,14 @@ async def connect_agent(req: ConnectRequest):
             "Do not use markdown formatting, bullet points, or code blocks unless explicitly requested."
         )
 
+        avatar = GeminiLiveAvatar(width=640, height=480, fps=25)
+
         agent = Agent(
             edge=edge,
             agent_user=User(name="Gemini Assistant", id=agent_id),
             instructions=instructions,
             llm=llm,
+            avatar=avatar,
         )
 
         # 6. Event queue for frontend updates
@@ -260,6 +267,7 @@ async def connect_agent(req: ConnectRequest):
         async def on_llm_response(event):
             text = getattr(event, "text", None) or getattr(event, "content", None)
             if text:
+                avatar.on_agent_speaking(str(text))
                 await event_queue.put({
                     "type": "transcript",
                     "speaker": "agent",
@@ -291,6 +299,10 @@ async def connect_agent(req: ConnectRequest):
                     await agent.close()
                 except Exception:
                     pass
+                try:
+                    await avatar.close()
+                except Exception:
+                    pass
                 active_sessions.pop(call_id, None)
 
         task = asyncio.create_task(run_agent())
@@ -298,6 +310,7 @@ async def connect_agent(req: ConnectRequest):
         active_sessions[call_id] = {
             "agent": agent,
             "call": call,
+            "avatar": avatar,
             "task": task,
             "event_queue": event_queue,
             "start_time": time.time(),
@@ -344,6 +357,11 @@ async def disconnect_agent(req: DisconnectRequest):
         try:
             session["task"].cancel()
             await session["agent"].close()
+            if "avatar" in session:
+                try:
+                    await session["avatar"].close()
+                except Exception:
+                    pass
         except Exception as e:
             logger.warning(f"Error while closing agent: {e}")
         return {"status": "ok", "message": f"Session {req.call_id} closed."}

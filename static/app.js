@@ -26,6 +26,9 @@ const videoModeBanner = document.getElementById('video-mode-banner');
 const btnReopenVideo = document.getElementById('btn-reopen-video');
 const btnSwitchToAudio = document.getElementById('btn-switch-to-audio');
 
+const avatarVideoContainer = document.getElementById('avatar-video-container');
+const agentAvatarVideoEl = document.getElementById('agent-avatar-video');
+
 const screenContainer = document.getElementById('screen-container');
 const screenVideoEl = document.getElementById('screen-video');
 const cameraContainer = document.getElementById('camera-container');
@@ -88,18 +91,31 @@ function addTranscript(speaker, text) {
   transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
 }
 
-// Helper: Bind Agent Audio Element
-function bindAgentAudio(call) {
-  if (!call || !remoteAudioEl) return;
+// Helper: Bind Agent Audio & Avatar Video Element
+function bindAgentMedia(call) {
+  if (!call) return;
   try {
     call.state.remoteParticipants$.subscribe((participants) => {
       participants.forEach((p) => {
-        if (p.userId === 'gemini-assistant' || p.isSpeaking || p.audioStream) {
-          try {
-            call.bindAudioElement(remoteAudioEl, p.sessionId, 'audioTrack');
-            console.log('[InPage] Bound agent audio track for session:', p.sessionId);
-          } catch (e) {
-            console.warn('[InPage] Audio bind warning:', e);
+        if (p.userId === 'gemini-assistant' || p.isSpeaking || p.audioStream || p.videoStream) {
+          // Bind Audio
+          if (remoteAudioEl && (p.audioStream || p.isSpeaking || p.userId === 'gemini-assistant')) {
+            try {
+              call.bindAudioElement(remoteAudioEl, p.sessionId, 'audioTrack');
+              console.log('[InPage] Bound agent audio track for session:', p.sessionId);
+            } catch (e) {
+              console.warn('[InPage] Audio bind warning:', e);
+            }
+          }
+          // Bind Avatar Video
+          if (agentAvatarVideoEl && avatarVideoContainer) {
+            try {
+              call.bindVideoElement(agentAvatarVideoEl, p.sessionId, 'videoTrack');
+              avatarVideoContainer.classList.remove('hidden');
+              console.log('[InPage] Bound agent avatar video track for session:', p.sessionId);
+            } catch (e) {
+              console.warn('[InPage] Video bind warning:', e);
+            }
           }
         }
       });
@@ -275,7 +291,7 @@ async function connectSession(requestedMode) {
               user: { id: activeCallData.user_id, name: 'User' },
             });
             currentCall = streamClient.call('default', activeCallId);
-            bindAgentAudio(currentCall);
+            bindAgentMedia(currentCall);
             await currentCall.join({ create: false });
           }
           await currentCall.microphone.enable();
@@ -377,7 +393,7 @@ async function connectSession(requestedMode) {
         });
 
         currentCall = streamClient.call('default', activeCallId);
-        bindAgentAudio(currentCall);
+        bindAgentMedia(currentCall);
 
         await currentCall.join({ create: false });
         await currentCall.microphone.enable();
@@ -633,6 +649,13 @@ async function disconnectCall() {
   if (remoteAudioEl) {
     remoteAudioEl.pause();
     remoteAudioEl.srcObject = null;
+  }
+
+  if (agentAvatarVideoEl) {
+    agentAvatarVideoEl.srcObject = null;
+  }
+  if (avatarVideoContainer) {
+    avatarVideoContainer.classList.add('hidden');
   }
 
   if (sseSource) {
