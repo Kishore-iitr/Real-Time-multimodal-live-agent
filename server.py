@@ -106,6 +106,27 @@ class ChatMessageRequest(BaseModel):
     model: Optional[str] = "gemini-3-flash-preview"
 
 
+class LiveAvatarListRequest(BaseModel):
+    api_key: Optional[str] = None
+
+
+@app.post("/api/liveavatar/avatars")
+async def list_liveavatars(req: LiveAvatarListRequest):
+    key = (req.api_key or os.getenv("LIVEAVATAR_API_KEY") or "").strip()
+    if not key:
+        return {"status": "error", "message": "LiveAvatar API key is required"}
+    try:
+        async with httpx.AsyncClient(base_url="https://api.liveavatar.com", timeout=15.0) as client:
+            resp = await client.get("/v1/avatars", headers={"X-API-KEY": key})
+            if resp.status_code == 200:
+                data = resp.json().get("data", [])
+                return {"status": "ok", "avatars": data}
+            else:
+                return {"status": "error", "code": resp.status_code, "detail": resp.text}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/api/config", response_model=ConfigResponse)
 async def get_config():
     """Check which API keys are pre-configured in the server environment."""
@@ -250,25 +271,39 @@ async def connect_agent(req: ConnectRequest):
         )
 
         avatar = None
-        liveavatar_key = req.liveavatar_api_key or os.getenv("LIVEAVATAR_API_KEY")
-        liveavatar_id = req.liveavatar_avatar_id or os.getenv("LIVEAVATAR_AVATAR_ID")
+        liveavatar_notice = None
+        liveavatar_key = (req.liveavatar_api_key or os.getenv("LIVEAVATAR_API_KEY") or "").strip()
+        liveavatar_id = (req.liveavatar_avatar_id or os.getenv("LIVEAVATAR_AVATAR_ID") or "").strip()
 
         if liveavatar_key and liveavatar_id:
             try:
                 from vision_agents.plugins import liveavatar
-                # Custom avatars require is_sandbox=False. Only the default Wayne avatar uses is_sandbox=True.
                 is_sandbox = False
                 if req.liveavatar_is_sandbox is True:
                     is_sandbox = True
                 elif liveavatar_id == "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a":
                     is_sandbox = True
 
-                avatar = liveavatar.Avatar(
-                    api_key=liveavatar_key,
-                    avatar_id=liveavatar_id,
-                    is_sandbox=is_sandbox,
-                )
-                logger.info(f"Initialized real photorealistic LiveAvatar for agent: {liveavatar_id} (is_sandbox={is_sandbox})")
+                # Pre-validate LiveAvatar token before attaching so an avatar error never crashes the voice agent!
+                test_client = liveavatar.liveavatar_client.LiveAvatarClient(api_key=liveavatar_key)
+                try:
+                    tok = await test_client.create_session_token(
+                        avatar_id=liveavatar_id,
+                        is_sandbox=is_sandbox,
+                    )
+                    logger.info(f"Verified LiveAvatar token: {tok.session_id} for avatar: {liveavatar_id}")
+                    avatar = liveavatar.Avatar(
+                        api_key=liveavatar_key,
+                        avatar_id=liveavatar_id,
+                        is_sandbox=is_sandbox,
+                    )
+                except Exception as tok_err:
+                    err_msg = str(tok_err)
+                    logger.warning(f"LiveAvatar validation failed: {err_msg}. Gracefully falling back to zero-lag voice agent.")
+                    liveavatar_notice = f"LiveAvatar Notice: {err_msg}. Continuing in zero-lag voice mode so you can speak with Gemini!"
+                    avatar = None
+                finally:
+                    await test_client.close()
             except Exception as e:
                 logger.warning(f"Failed to initialize LiveAvatar: {e}. Running in zero-lag native mode.")
                 avatar = None
@@ -311,6 +346,8 @@ async def connect_agent(req: ConnectRequest):
         async def run_agent():
             logger.info(f"Starting conversational agent on call {call_id}...")
             try:
+                if liveavatar_notice:
+                    await event_queue.put({"type": "warning", "text": liveavatar_notice})
                 async with agent.join(call, participant_wait_timeout=60.0):
                     await event_queue.put({
                         "type": "status",

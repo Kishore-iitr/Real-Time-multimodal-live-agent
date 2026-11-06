@@ -136,9 +136,23 @@
                   <input type="password" id="liveavatar-key" placeholder="e.g. liveavatar_key_xxx" autocomplete="off" />
                 </div>
                 <div class="form-group">
-                  <label for="liveavatar-id">Avatar ID</label>
-                  <input type="text" id="liveavatar-id" placeholder="e.g. avatar_default or UUID" autocomplete="off" />
+                  <label for="liveavatar-preset">Select Avatar or Quick-Fill</label>
+                  <select id="liveavatar-preset">
+                    <option value="custom" selected>Custom Avatar ID (Enter below)</option>
+                    <option value="dd73ea75-1218-4ef3-92ce-606d5f7fbc0a">Wayne (Sandbox / Free Testing)</option>
+                    <option value="9c59a215-4c9f-478f-9d95-edca74c7b0d0">Alessandra (Black Suit - Stock)</option>
+                    <option value="bfed3e3e-7d44-4fdb-b2be-ce9a9fd0b9b5">Amina (Blue Suit - Stock)</option>
+                    <option value="ebdfdc7e-7e2c-4d2c-8407-a78883e5000a">Anastasia (Black Suit - Stock)</option>
+                  </select>
                 </div>
+                <div class="form-group">
+                  <label for="liveavatar-id">Avatar ID</label>
+                  <input type="text" id="liveavatar-id" placeholder="e.g. 6c05e7e3-... or UUID" autocomplete="off" />
+                </div>
+                <button type="button" id="btn-fetch-liveavatars" class="btn btn-secondary btn-small btn-full" style="margin-top: 4px;">
+                  🔍 Query My LiveAvatar Account Avatars
+                </button>
+                <div id="liveavatar-fetch-status" class="field-hint" style="margin-top: 4px; display: none;"></div>
                 <div class="form-group checkbox-group" style="margin-top: 8px;">
                   <label for="liveavatar-sandbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.8rem; color: var(--text-muted);">
                     <input type="checkbox" id="liveavatar-sandbox" style="width: auto; margin: 0;" />

@@ -31,6 +31,9 @@ const agentAvatarVideoEl = document.getElementById('agent-avatar-video');
 
 const liveavatarKeyInput = document.getElementById('liveavatar-key');
 const liveavatarIdInput = document.getElementById('liveavatar-id');
+const liveavatarPresetSelect = document.getElementById('liveavatar-preset');
+const btnFetchLiveAvatars = document.getElementById('btn-fetch-liveavatars');
+const liveavatarFetchStatus = document.getElementById('liveavatar-fetch-status');
 const liveavatarSandboxCheckbox = document.getElementById('liveavatar-sandbox');
 
 const avatarStatusPill = document.getElementById('avatar-status-pill');
@@ -329,6 +332,67 @@ async function initializeApp() {
   if (liveavatarSandboxCheckbox) {
     liveavatarSandboxCheckbox.addEventListener('change', () => {
       localStorage.setItem('liveavatar_is_sandbox', liveavatarSandboxCheckbox.checked ? 'true' : 'false');
+    });
+  }
+
+  // LiveAvatar Preset Selector
+  if (liveavatarPresetSelect && liveavatarIdInput) {
+    liveavatarPresetSelect.addEventListener('change', () => {
+      const val = liveavatarPresetSelect.value;
+      if (val !== 'custom') {
+        liveavatarIdInput.value = val;
+        localStorage.setItem('liveavatar_avatar_id', val);
+        if (liveavatarSandboxCheckbox) {
+          liveavatarSandboxCheckbox.checked = (val === 'dd73ea75-1218-4ef3-92ce-606d5f7fbc0a');
+          localStorage.setItem('liveavatar_is_sandbox', liveavatarSandboxCheckbox.checked ? 'true' : 'false');
+        }
+      }
+    });
+  }
+
+  // Query LiveAvatar Catalog
+  if (btnFetchLiveAvatars && liveavatarKeyInput) {
+    btnFetchLiveAvatars.addEventListener('click', async () => {
+      const key = liveavatarKeyInput.value.trim();
+      if (!key) {
+        showAlert('Please enter your LiveAvatar API Key first.', 'warning');
+        return;
+      }
+      if (liveavatarFetchStatus) {
+        liveavatarFetchStatus.style.display = 'block';
+        liveavatarFetchStatus.textContent = '⏳ Querying LiveAvatar catalog...';
+      }
+      try {
+        const res = await fetch('/api/liveavatar/avatars', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key }),
+        });
+        const d = await res.json();
+        if (d.status === 'ok' && d.avatars && d.avatars.length > 0) {
+          if (liveavatarPresetSelect) {
+            // Keep custom option, populate fetched avatars
+            liveavatarPresetSelect.innerHTML = '<option value="custom">Custom Avatar ID (Enter below)</option>';
+            d.avatars.forEach((av) => {
+              const opt = document.createElement('option');
+              opt.value = av.avatar_id || av.id;
+              opt.textContent = `${av.name || av.avatar_name || 'Avatar'} (${av.avatar_id || av.id})`;
+              liveavatarPresetSelect.appendChild(opt);
+            });
+          }
+          if (liveavatarFetchStatus) {
+            liveavatarFetchStatus.textContent = `✓ Found ${d.avatars.length} avatar(s) in your LiveAvatar account!`;
+          }
+        } else {
+          if (liveavatarFetchStatus) {
+            liveavatarFetchStatus.textContent = d.message || d.detail || 'No custom avatars found on this LiveAvatar key.';
+          }
+        }
+      } catch (err) {
+        if (liveavatarFetchStatus) {
+          liveavatarFetchStatus.textContent = `Error querying LiveAvatar: ${err.message}`;
+        }
+      }
     });
   }
 
@@ -673,6 +737,11 @@ function startEventStream(callId) {
       } else if (data.type === 'transcript') {
         addTranscript(data.speaker, data.text);
         triggerSpeakingVisual(data.speaker === 'agent');
+      } else if (data.type === 'warning') {
+        showAlert(data.text, 'warning');
+        if (callStatusLabel) {
+          callStatusLabel.textContent = `⚠️ ${data.text}`;
+        }
       } else if (data.type === 'error') {
         showAlert(`Agent Error: ${data.text}`, 'error');
       }
