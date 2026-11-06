@@ -300,7 +300,29 @@ async def connect_agent(req: ConnectRequest):
                 except Exception as tok_err:
                     err_msg = str(tok_err)
                     logger.warning(f"LiveAvatar validation failed: {err_msg}. Gracefully falling back to zero-lag voice agent.")
-                    liveavatar_notice = f"LiveAvatar Notice: {err_msg}. Continuing in zero-lag voice mode so you can speak with Gemini!"
+                    
+                    # Try to inspect account avatars to give user precise diagnosis
+                    avail_hint = ""
+                    try:
+                        resp = await test_client._http.get("/v1/avatars")
+                        if resp.status_code == 200:
+                            av_list = resp.json().get("data", [])
+                            if av_list:
+                                ids = [f"{a.get('name', 'Avatar')}: {a.get('avatar_id') or a.get('id')}" for a in av_list[:3]]
+                                avail_hint = f" Available on your account: {', '.join(ids)}."
+                            else:
+                                avail_hint = " No custom avatars found on this LiveAvatar account yet."
+                    except Exception:
+                        pass
+
+                    if "Avatar not found" in err_msg or "400" in err_msg:
+                        liveavatar_notice = (
+                            f"LiveAvatar Notice: Avatar ID '{liveavatar_id}' was not found on api.liveavatar.com.{avail_hint} "
+                            f"(Tip: Check if training finished on app.liveavatar.com, or test with Wayne: dd73ea75-1218-4ef3-92ce-606d5f7fbc0a). "
+                            f"Connected with Gemini in Zero-Lag Voice Mode!"
+                        )
+                    else:
+                        liveavatar_notice = f"LiveAvatar Notice: {err_msg}. Continuing in zero-lag voice mode!"
                     avatar = None
                 finally:
                     await test_client.close()
