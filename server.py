@@ -91,6 +91,7 @@ class ConnectRequest(BaseModel):
     model: Optional[str] = "gemini-3.8-live"
     liveavatar_api_key: Optional[str] = None
     liveavatar_avatar_id: Optional[str] = None
+    liveavatar_is_sandbox: Optional[bool] = False
     enable_custom_avatar: Optional[bool] = False
 
 
@@ -255,12 +256,19 @@ async def connect_agent(req: ConnectRequest):
         if liveavatar_key and liveavatar_id:
             try:
                 from vision_agents.plugins import liveavatar
+                # Custom avatars require is_sandbox=False. Only the default Wayne avatar uses is_sandbox=True.
+                is_sandbox = False
+                if req.liveavatar_is_sandbox is True:
+                    is_sandbox = True
+                elif liveavatar_id == "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a":
+                    is_sandbox = True
+
                 avatar = liveavatar.Avatar(
                     api_key=liveavatar_key,
                     avatar_id=liveavatar_id,
-                    is_sandbox=True,
+                    is_sandbox=is_sandbox,
                 )
-                logger.info(f"Initialized real photorealistic LiveAvatar for agent: {liveavatar_id}")
+                logger.info(f"Initialized real photorealistic LiveAvatar for agent: {liveavatar_id} (is_sandbox={is_sandbox})")
             except Exception as e:
                 logger.warning(f"Failed to initialize LiveAvatar: {e}. Running in zero-lag native mode.")
                 avatar = None

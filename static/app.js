@@ -31,6 +31,7 @@ const agentAvatarVideoEl = document.getElementById('agent-avatar-video');
 
 const liveavatarKeyInput = document.getElementById('liveavatar-key');
 const liveavatarIdInput = document.getElementById('liveavatar-id');
+const liveavatarSandboxCheckbox = document.getElementById('liveavatar-sandbox');
 
 const avatarStatusPill = document.getElementById('avatar-status-pill');
 const avatarStatusText = document.getElementById('avatar-status-text');
@@ -321,6 +322,16 @@ async function initializeApp() {
   const savedLiveAvatarId = localStorage.getItem('liveavatar_avatar_id');
   if (savedLiveAvatarId && liveavatarIdInput) liveavatarIdInput.value = savedLiveAvatarId;
 
+  const savedLiveAvatarSandbox = localStorage.getItem('liveavatar_is_sandbox');
+  if (savedLiveAvatarSandbox !== null && liveavatarSandboxCheckbox) {
+    liveavatarSandboxCheckbox.checked = savedLiveAvatarSandbox === 'true';
+  }
+  if (liveavatarSandboxCheckbox) {
+    liveavatarSandboxCheckbox.addEventListener('change', () => {
+      localStorage.setItem('liveavatar_is_sandbox', liveavatarSandboxCheckbox.checked ? 'true' : 'false');
+    });
+  }
+
   if (liveavatarKeyInput) {
     liveavatarKeyInput.addEventListener('change', () => {
       if (liveavatarKeyInput.value) localStorage.setItem('liveavatar_api_key', liveavatarKeyInput.value.trim());
@@ -526,6 +537,7 @@ async function connectSession(requestedMode) {
         model: model,
         liveavatar_api_key: liveavatarKeyInput ? liveavatarKeyInput.value.trim() : null,
         liveavatar_avatar_id: liveavatarIdInput ? liveavatarIdInput.value.trim() : null,
+        liveavatar_is_sandbox: liveavatarSandboxCheckbox ? liveavatarSandboxCheckbox.checked : false,
       }),
     });
 
