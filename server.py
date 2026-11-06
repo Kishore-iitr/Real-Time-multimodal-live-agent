@@ -6,6 +6,7 @@ import json
 import asyncio
 import logging
 import webbrowser
+import httpx
 from typing import Dict, Any, Optional
 from urllib.parse import urlencode
 
@@ -119,8 +120,14 @@ async def list_liveavatars(req: LiveAvatarListRequest):
         async with httpx.AsyncClient(base_url="https://api.liveavatar.com", timeout=15.0) as client:
             resp = await client.get("/v1/avatars", headers={"X-API-KEY": key})
             if resp.status_code == 200:
-                data = resp.json().get("data", [])
-                return {"status": "ok", "avatars": data}
+                raw = resp.json().get("data", [])
+                if isinstance(raw, list):
+                    avatars = raw
+                elif isinstance(raw, dict):
+                    avatars = raw.get("avatars") or raw.get("list") or raw.get("items") or []
+                else:
+                    avatars = []
+                return {"status": "ok", "avatars": avatars}
             else:
                 return {"status": "error", "code": resp.status_code, "detail": resp.text}
     except Exception as e:
